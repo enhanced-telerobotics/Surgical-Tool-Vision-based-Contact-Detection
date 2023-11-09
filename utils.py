@@ -83,6 +83,23 @@ def train(model: nn.Module,
     return model.metrics
 
 
+def predict(model: nn.Module,
+            dataloader: DataLoader,
+            device: torch.device) -> List[torch.Tensor]:
+    model.to(device)
+    model.eval()
+
+    predictions = []
+    with torch.no_grad():
+        for X, _ in dataloader:
+            X = X.to(device)
+            output = model(X)
+            pred = output.argmax(dim=1)
+            predictions.extend(pred.cpu().detach().numpy())
+
+    return np.array(predictions)
+
+
 class JitterCrop(object):
     def __init__(self, output_size, vec_len):
         self.size = output_size
