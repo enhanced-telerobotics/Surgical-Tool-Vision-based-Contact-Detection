@@ -80,6 +80,10 @@ def train(model: nn.Module,
 
         model.states.append(model.state_dict())
 
+    # add smooth windows for all metrics
+    for key in model.metrics:
+        model.metrics[key] = _moving_average(model.metrics[key]).tolist()
+
     return model.metrics
 
 
@@ -98,6 +102,13 @@ def predict(model: nn.Module,
             predictions.extend(pred.cpu().detach().numpy())
 
     return np.array(predictions)
+
+
+def _moving_average(data: np.ndarray,
+                    window_size: int = 5):
+    """ Compute moving average using numpy. """
+    weights = np.ones(window_size) / window_size
+    return np.convolve(data, weights, mode='valid')
 
 
 class JitterCrop(object):
