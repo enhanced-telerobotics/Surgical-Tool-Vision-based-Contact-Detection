@@ -1,0 +1,15 @@
+__pycache__
+
+*.npy
+*.json
+!parameters.json
+!paths.json
+*.pth
+*.txt
+*.pdf
+*.svg
+*.eps
+*.pickle
+
+run*
+test.*

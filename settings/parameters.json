@@ -1,0 +1,8 @@
+{
+    "random_seed": 42,
+    "CustomCNN": {
+        "learning_rate": 8.404121025240116e-05,
+        "weight_decay": 4.760735689963285e-05,
+        "batch_size": 32
+    }
+}
