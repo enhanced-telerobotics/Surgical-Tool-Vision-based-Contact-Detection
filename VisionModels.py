@@ -1,11 +1,10 @@
 import os
 import numpy as np
-import json
-from datetime import datetime
 import random
 import torch
 import torch.nn as nn
 from typing import Optional, List
+from torchvision.models import efficientnet_b3
 
 
 class CustomCNN(nn.Module):
@@ -44,7 +43,6 @@ class CustomCNN(nn.Module):
         }
         self.states = []
 
-        # Set the random seed if it's provided
         if random_seed:
             os.environ['PYTHONHASHSEED'] = str(random_seed)
             torch.manual_seed(random_seed)
@@ -53,5 +51,41 @@ class CustomCNN(nn.Module):
             random.seed(random_seed)
 
     def forward(self, X):
-        out = self.linear_relu_stack(X)
-        return out
+        return self.linear_relu_stack(X)
+
+
+class CustomEfficientNetB3(nn.Module):
+    def __init__(self,
+                 num_classes: int = 2,
+                 pretrained: bool = True,
+                 random_seed: Optional[int] = None):
+        super(CustomEfficientNetB3, self).__init__()
+        self.base_model = efficientnet_b3(pretrained=pretrained)
+
+        self.dropout = nn.Dropout(p=0.3, inplace=True)
+        self.fc = nn.Linear(
+            self.base_model.classifier[1].in_features, num_classes)
+
+        # Replace the classifier of the base model
+        self.base_model.classifier = nn.Sequential(
+            self.dropout,
+            self.fc
+        )
+
+        self.metrics = {
+            'train_loss': [],
+            'train_acc': [],
+            'val_loss': [],
+            'val_acc': []
+        }
+        self.states = []
+
+        if random_seed:
+            os.environ['PYTHONHASHSEED'] = str(random_seed)
+            torch.manual_seed(random_seed)
+            torch.cuda.manual_seed(random_seed)
+            np.random.seed(random_seed)
+            random.seed(random_seed)
+
+    def forward(self, x):
+        return self.base_model(x)
