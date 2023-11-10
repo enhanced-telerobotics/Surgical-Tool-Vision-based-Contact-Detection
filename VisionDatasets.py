@@ -12,21 +12,28 @@ class ContactDataset(Dataset):
     def __init__(self,
                  images: List[object],
                  labels: Union[List[int], np.ndarray],
-                 transform: object = None,
+                 transform: object = torchvision.transforms.Compose([
+                     torchvision.transforms.PILToTensor(),
+                     torchvision.transforms.ConvertImageDtype(torch.float),
+                     torchvision.transforms.RandomRotation(20),
+                     JitterCrop((234, 234), 75),
+                     torchvision.transforms.RandomHorizontalFlip(),
+                     torchvision.transforms.RandomErasing(),
+                     torchvision.transforms.ColorJitter(
+                         brightness=0.5, contrast=0.5, saturation=0.5, hue=0.5)
+                 ]),
                  weight_coeff: int = 1,
                  finetuning: int = None):
 
         # Define the transformation pipeline
-        self.transform = transform if transform is not None else torchvision.transforms.Compose([            
-            torchvision.transforms.PILToTensor(),
-            torchvision.transforms.ConvertImageDtype(torch.float),
-            torchvision.transforms.RandomRotation(20),
-            JitterCrop((234, 234), 75),
-            torchvision.transforms.RandomHorizontalFlip(),
-            torchvision.transforms.RandomErasing(),
-            torchvision.transforms.ColorJitter(
-                brightness=0.5, contrast=0.5, saturation=0.5, hue=0.5)
-        ])
+        if transform is not None:
+            self.transform = transform
+        else:
+            self.transform = torchvision.transforms.Compose([
+                torchvision.transforms.PILToTensor(),
+                torchvision.transforms.ConvertImageDtype(torch.float),
+                JitterCrop((234, 234), 75)
+            ])
 
         # Create a list of indices to shuffle
         if finetuning:
