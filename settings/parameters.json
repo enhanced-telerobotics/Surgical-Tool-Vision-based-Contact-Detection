@@ -1,10 +1,10 @@
 {
     "random_seed": 42,
-    "epochs": 130,
+    "epochs": 200,
     "CustomCNN": {
-        "learning_rate": 8.404121025240116e-04,
+        "learning_rate": 8.404121025240116e-05,
         "weight_decay": 4.760735689963285e-05,
-        "batch_size": 32
+        "batch_size": 128
     },
     "EfficientNet": {
         "learning_rate": 0.0004137045040969491,
