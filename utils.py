@@ -82,7 +82,8 @@ def train(model: nn.Module,
 
     # add smooth windows for all metrics
     for key in model.metrics:
-        model.metrics[key] = _moving_average(model.metrics[key]).tolist()
+        if len(model.metrics[key]) > 0:
+            model.metrics[key] = _moving_average(model.metrics[key]).tolist()
 
     return model.metrics
 
