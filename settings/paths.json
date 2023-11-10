@@ -1,5 +1,8 @@
 {
     "silicone": {
         "labels": "/home/sxy841/ERIE/mhl88/labels/MTurk_Labels.csv"
+    },
+    "realistic":{
+        "labels": "/home/mhl88/MTurk/TouchSensing/labels/all_batches_plus_attnqn.csv"
     }
 }
