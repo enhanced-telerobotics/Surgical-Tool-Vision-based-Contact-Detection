@@ -111,15 +111,69 @@ def _moving_average(data: np.ndarray,
     return np.convolve(data, weights, mode='valid')
 
 
-class JitterCrop(object):
-    def __init__(self, output_size, vec_len):
+class CenterCrop(object):
+    """
+    Crop the input image around a specified center with random jitter.
+
+    Args:
+        output_size (tuple): Desired output size (height, width) of the crop.
+        vec_len (int): Maximum jitter vector length.
+        cx (int, optional): Center x-coordinate for cropping. If None, the image center is used.
+        cy (int, optional): Center y-coordinate for cropping. If None, the image center is used.
+
+    Returns:
+        PIL.Image: Cropped image.
+
+    Example:
+        >>> crop_transform = CenterCrop(output_size=(100, 100), vec_len=10, cx=50, cy=50)
+        >>> cropped_image = crop_transform(input_image)
+    """
+
+    def __init__(self, output_size, vec_len=75, cx=None, cy=None):
+        """
+        Initialize the CenterCrop transform.
+
+        Args:
+            output_size (tuple): Desired output size (height, width) of the crop.
+            vec_len (int): Maximum jitter vector length.
+            cx (int, optional): Center x-coordinate for cropping. If None, the image center is used.
+            cy (int, optional): Center y-coordinate for cropping. If None, the image center is used.
+        """
         self.size = output_size
         self.len = vec_len
+        self.cx = cx
+        self.cy = cy
 
     def __call__(self, im):
-        x, y = im.shape[1:3]
-        x = math.ceil(-self.size[0]/2 + x/2)
-        y = math.ceil(-self.size[1]/2 + y/2)
-        dx = int(math.ceil(self.len*random.uniform(-1, 1)))
-        dy = int(math.ceil(self.len*random.uniform(-1, 1)))
-        return torchvision.transforms.functional.crop(im, x+dx, y+dy, self.size[0], self.size[1])
+        """
+        Crop the input image.
+
+        Args:
+            im (PIL.Image): Input image to be cropped.
+
+        Returns:
+            PIL.Image: Cropped image.
+        """
+        height, weight = im.shape[1:3]
+
+        # Calculate the crop center coordinates
+        if self.cx is None:
+            cx = math.ceil(weight / 2)
+            diff_x = 0
+        else:
+            cx = self.cx
+            diff_x = int(math.ceil(self.len * random.uniform(-1, 1)))
+
+        if self.cy is None:
+            cy = math.ceil(height / 2)
+            diff_y = int(math.ceil(self.len * random.uniform(-1, 1)))
+        else:
+            cy = self.cy
+            diff_y = 0
+
+        # Calculate the coordinates of the top-left corner of the crop
+        top = cx - self.size[0] // 2 + diff_x
+        left = cy - self.size[1] // 2 + diff_y
+
+        # Use torchvision's crop function for cropping
+        return torchvision.transforms.functional.crop(im, left, top, self.size[0], self.size[1])
