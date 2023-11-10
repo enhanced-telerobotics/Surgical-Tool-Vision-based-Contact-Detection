@@ -2,9 +2,9 @@ import torch
 import torchvision
 import numpy as np
 from torch.utils.data import Dataset
-from typing import Optional, List, Union
+from typing import Optional, List, Union, Tuple
 from PIL import Image
-from utils import JitterCrop
+from utils import CenterCrop
 
 
 class ContactDataset(Dataset):
@@ -12,28 +12,11 @@ class ContactDataset(Dataset):
     def __init__(self,
                  images: List[object],
                  labels: Union[List[int], np.ndarray],
-                 transform: object = torchvision.transforms.Compose([
-                     torchvision.transforms.PILToTensor(),
-                     torchvision.transforms.ConvertImageDtype(torch.float),
-                     torchvision.transforms.RandomRotation(20),
-                     JitterCrop((234, 234), 75),
-                     torchvision.transforms.RandomHorizontalFlip(),
-                     torchvision.transforms.RandomErasing(),
-                     torchvision.transforms.ColorJitter(
-                         brightness=0.5, contrast=0.5, saturation=0.5, hue=0.5)
-                 ]),
+                 transform: List[object] = None,
+                 jitter: bool = False,
                  weight_coeff: int = 1,
-                 finetuning: int = None):
-
-        # Define the transformation pipeline
-        if transform is not None:
-            self.transform = transform
-        else:
-            self.transform = torchvision.transforms.Compose([
-                torchvision.transforms.PILToTensor(),
-                torchvision.transforms.ConvertImageDtype(torch.float),
-                JitterCrop((234, 234), 75)
-            ])
+                 finetuning: Optional[int] = None,
+                 coords: Optional[Tuple[int, int]] = None):
 
         # Create a list of indices to shuffle
         if finetuning:
@@ -42,8 +25,45 @@ class ContactDataset(Dataset):
             indices = indices[:(round(finetuning * len(labels)))]
 
         self.labels = torch.tensor(labels, dtype=torch.long)
-        self.images = [self.transform(img) for img in images]
 
+        # Define the transformation pipeline
+        if transform is None:
+            self.transform = [
+                torchvision.transforms.PILToTensor(),
+                torchvision.transforms.ConvertImageDtype(torch.float)
+            ]
+        else:
+            self.transform = transform
+
+        # add default crop
+        crop_size = (234, 234)
+        self.transform.append(CenterCrop(crop_size))
+
+        # determine if add jitter transforms
+        if jitter:
+            self.transform.extend([
+                torchvision.transforms.RandomHorizontalFlip(),
+                torchvision.transforms.RandomErasing(),
+                torchvision.transforms.ColorJitter(
+                    brightness=0.5, contrast=0.5, saturation=0.5, hue=0.5)]
+            )
+
+        # set center of crop if provided
+        if coords is None:
+            transform_compose = torchvision.transforms.Compose(self.transform)
+            self.images = [transform_compose(img) for img in images]
+        else:
+            self.images = []
+            for ((cx, cy), img) in zip(coords, images):
+                if jitter:
+                    self.transform[-4] = CenterCrop(crop_size, cx=cx, cy=cy)
+                else:
+                    self.transform[-1] = CenterCrop(crop_size, cx=cx, cy=cy)
+                transform_compose = torchvision.transforms.Compose(
+                    self.transform)
+                self.images.append(transform_compose(img))
+
+        # calc distribution for weights
         self.distribution = np.bincount(labels)/len(labels)
         self.weightCoeff = weight_coeff
 
