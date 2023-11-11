@@ -29,8 +29,7 @@ class ContactDataset(Dataset):
         # Define the transformation pipeline
         if transform is None:
             self.transform = [
-                torchvision.transforms.PILToTensor(),
-                torchvision.transforms.ConvertImageDtype(torch.float)
+                torchvision.transforms.PILToTensor()
             ]
         else:
             self.transform = transform
@@ -51,7 +50,7 @@ class ContactDataset(Dataset):
         # set center of crop if provided
         if coords is None:
             transform_compose = torchvision.transforms.Compose(self.transform)
-            self.images = [transform_compose(img) for img in images]
+            self.images = [transform_compose(img).float() for img in images]
         else:
             self.images = []
             for ((cx, cy), img) in zip(coords, images):
@@ -61,7 +60,7 @@ class ContactDataset(Dataset):
                     self.transform[-1] = CenterCrop(crop_size, cx=cx, cy=cy)
                 transform_compose = torchvision.transforms.Compose(
                     self.transform)
-                self.images.append(transform_compose(img))
+                self.images.append(transform_compose(img).float())
 
         # calc distribution for weights
         self.distribution = np.bincount(labels)/len(labels)
