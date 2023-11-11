@@ -46,11 +46,6 @@ def train(model: nn.Module,
             loss.backward()
             optimizer.step()
 
-            if use_tqdm:
-                pbar.set_description(f"Epoch {epoch}")
-                pbar.set_postfix({'loss': loss.item()})
-                pbar.update()
-
         # Calculate average loss and accuracy over the entire dataset
         train_loss /= len(dataloader)
         train_acc = correct / len(dataloader.dataset)
@@ -77,6 +72,15 @@ def train(model: nn.Module,
 
             model.metrics['val_loss'].append(val_loss)
             model.metrics['val_acc'].append(val_acc)
+        
+
+        if use_tqdm:
+            pbar.set_description(f"Epoch {epoch}")
+            if val_dataloader:                
+                pbar.set_postfix({'train_loss': train_loss, 'val_loss': val_loss})
+            else:
+                pbar.set_postfix({'train_loss': train_loss})
+            pbar.update()
 
         model.states.append(model.state_dict())
 
@@ -91,6 +95,7 @@ def train(model: nn.Module,
 def predict(model: nn.Module,
             dataloader: DataLoader,
             device: torch.device) -> List[torch.Tensor]:
+    
     model.to(device)
     model.eval()
 
@@ -160,17 +165,16 @@ class CenterCrop(object):
         # Calculate the crop center coordinates
         if self.cx is None:
             cx = math.ceil(weight / 2)
-            diff_x = 0
         else:
             cx = self.cx
-            diff_x = int(math.ceil(self.len * random.uniform(-1, 1)))
 
         if self.cy is None:
             cy = math.ceil(height / 2)
-            diff_y = int(math.ceil(self.len * random.uniform(-1, 1)))
         else:
             cy = self.cy
-            diff_y = 0
+
+        diff_x = int(math.ceil(self.len * random.uniform(-1, 1)))
+        diff_y = int(math.ceil(self.len * random.uniform(-1, 1)))
 
         # Calculate the coordinates of the top-left corner of the crop
         top = cx - self.size[0] // 2 + diff_x
