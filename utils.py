@@ -25,11 +25,11 @@ def train(model: nn.Module,
 
     model.to(device)
     for epoch in range(epochs):
+
+        model.train()
         correct = 0
         train_loss = 0.0
-
         for X, y in dataloader:
-            model.train()
             # Move data to the device
             X, y = X.to(device), y.to(device)
 
