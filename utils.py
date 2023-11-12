@@ -149,6 +149,20 @@ def save_state_dict(model: nn.Module,
     return model_name
 
 
+def load_state_dict(model: nn.Module,
+                    message_main: str,
+                    message_sub: str,
+                    load_path: str = 'models/') -> str:
+
+    model_name = os.path.join(
+        load_path, f'model_{message_main}_{message_sub}.pth')
+
+    best_model = torch.load(model_name)
+    model.load_state_dict(best_model)
+
+    return model_name
+
+
 def _moving_average(data: np.ndarray,
                     window_size: int = 5):
     """ Compute moving average using numpy. """
