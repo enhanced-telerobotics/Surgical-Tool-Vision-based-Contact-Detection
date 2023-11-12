@@ -141,7 +141,10 @@ def save_state_dict(model: nn.Module,
     model_name = os.path.join(
         save_path, f'model_{message_main}_{message_sub}.pth')
 
-    best_epoch = np.argmax(model.metrics['val_acc'])
+    if len(model.metrics['val_acc']) > 0:        
+        best_epoch = np.argmax(model.metrics['val_acc'])
+    else:
+        best_epoch = np.argmax(model.metrics['train_acc'])
     best_model = model.states[best_epoch]
 
     torch.save(best_model, model_name)
