@@ -14,14 +14,20 @@ class ContactDataset(Dataset):
     def __init__(self,
                  images: List[object],
                  labels: Union[List[int], np.ndarray],
-                 coords: List[Tuple[int, int]],
+                 coords: List[Tuple[int, int]] = None,
                  jitter: bool = False,
                  weight_coeff: int = 1,
                  finetuning: Optional[int] = None):
         
         self.labels = torch.tensor(labels, dtype=torch.long)
         self.coords = coords
-        self.images = images
+        self.images = []
+
+        for image in images:
+            image = Image.open(image)
+            image = torchvision.transforms.PILToTensor()(image)
+            self.images.append(image)
+        self.images = torch.stack(self.images, dim=0)
 
         self.distribution = np.bincount(labels)/len(labels)
         self.weightCoeff = weight_coeff
@@ -31,13 +37,18 @@ class ContactDataset(Dataset):
         return len(self.labels)
 
     def __getitem__(self, index):
-        cx, cy = self.coords[index]
+        if self.coords:
+            cy, cx = self.coords[index]
+            jitter = 10
+        else:
+            cx, cy = None, None
+            jitter = 75
 
         # determine if add jitter transforms
         if self.jitter:
             self.transform = torchvision.transforms.Compose([
                 torchvision.transforms.RandomRotation(20),
-                CenterCrop((234, 234), 10, cx, cy),
+                CenterCrop((234, 234), jitter, cx, cy),
                 torchvision.transforms.RandomHorizontalFlip(),
                 torchvision.transforms.RandomErasing(),
                 torchvision.transforms.ColorJitter(
@@ -45,14 +56,12 @@ class ContactDataset(Dataset):
             )
         else:
             self.transform = torchvision.transforms.Compose([
-                CenterCrop((234, 234), 10, cx, cy),
+                CenterCrop((234, 234), jitter, cx, cy),
                 torchvision.transforms.ColorJitter(
                     brightness=0.5, contrast=0.5, saturation=0.5, hue=0.5)]
             )
         
         image = self.images[index]
-        image = Image.open(image)
-        image = torchvision.transforms.PILToTensor()(image)
         image = self.transform(image)
         image = image.float()
 
