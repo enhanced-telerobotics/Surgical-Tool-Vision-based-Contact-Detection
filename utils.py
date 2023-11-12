@@ -4,9 +4,12 @@ import torch.optim as optim
 import torchvision
 import math
 import random
+import json
+import os
 import numpy as np
 from torch.utils.data import Dataset, DataLoader
-from typing import Optional, List
+from typing import Optional, List, Tuple
+from datetime import datetime
 
 
 def train(model: nn.Module,
@@ -71,12 +74,12 @@ def train(model: nn.Module,
 
             model.metrics['val_loss'].append(val_loss)
             model.metrics['val_acc'].append(val_acc)
-        
 
         if use_tqdm:
             pbar.set_description(f"Epoch {epoch}")
-            if val_dataloader:                
-                pbar.set_postfix({'train_loss': train_loss, 'val_loss': val_loss})
+            if val_dataloader:
+                pbar.set_postfix(
+                    {'train_loss': train_loss, 'val_loss': val_loss})
             else:
                 pbar.set_postfix({'train_loss': train_loss})
             pbar.update()
@@ -93,20 +96,57 @@ def train(model: nn.Module,
 
 def predict(model: nn.Module,
             dataloader: DataLoader,
-            device: torch.device) -> List[torch.Tensor]:
-    
+            device: torch.device) -> Tuple[np.ndarray, np.ndarray]:
+
     model.to(device)
     model.eval()
 
     predictions = []
+    ground_truth = []
     with torch.no_grad():
-        for X, _ in dataloader:
+        for X, y in dataloader:
             X = X.to(device)
-            output = model(X)
-            pred = output.argmax(dim=1)
-            predictions.extend(pred.cpu().detach().numpy())
+            pred_logits = model(X)
 
-    return np.array(predictions)
+            # Get probabilities
+            pred_probs = torch.nn.functional.softmax(
+                pred_logits, dim=1).squeeze()
+
+            # Append to results
+            predictions.extend(pred_probs[:, 1].detach().tolist())
+            ground_truth.extend(y.detach().tolist())
+
+    return np.array(predictions), np.array(ground_truth)
+
+
+def save_metrics(model: nn.Module,
+                 message_main: str,
+                 message_sub: str = datetime.now().strftime("%H%M%S"),
+                 save_path: str = 'results/') -> str:
+
+    json_name = os.path.join(
+        save_path, f'metrics_{message_main}_{message_sub}.json')
+
+    with open(json_name, 'w') as f:
+        json.dump(model.metrics, f)
+
+    return json_name
+
+
+def save_state_dict(model: nn.Module,
+                    message_main: str,
+                    message_sub: str = datetime.now().strftime("%H%M%S"),
+                    save_path: str = 'models/') -> str:
+
+    model_name = os.path.join(
+        save_path, f'model_{message_main}_{message_sub}.pth')
+
+    best_epoch = np.argmax(model.metrics['val_acc'])
+    best_model = model.states[best_epoch]
+
+    torch.save(best_model, model_name)
+
+    return model_name
 
 
 def _moving_average(data: np.ndarray,
