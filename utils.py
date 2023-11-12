@@ -20,8 +20,7 @@ def train(model: nn.Module,
 
     if use_tqdm:
         from tqdm import tqdm
-        pbar = tqdm(total=epochs*len(dataloader),
-                    desc="Training Progress")
+        pbar = tqdm(total=epochs)
 
     model.to(device)
     for epoch in range(epochs):
@@ -150,7 +149,7 @@ class CenterCrop(object):
         self.cx = cx
         self.cy = cy
 
-    def __call__(self, im):
+    def __call__(self, img):
         """
         Crop the input image.
 
@@ -160,16 +159,16 @@ class CenterCrop(object):
         Returns:
             PIL.Image: Cropped image.
         """
-        height, weight = im.shape[1:3]
+        height, weight = img.shape[1:3]
 
         # Calculate the crop center coordinates
         if self.cx is None:
-            cx = math.ceil(weight / 2)
+            cx = math.ceil(height / 2)
         else:
             cx = self.cx
 
         if self.cy is None:
-            cy = math.ceil(height / 2)
+            cy = math.ceil(weight / 2)
         else:
             cy = self.cy
 
@@ -181,4 +180,4 @@ class CenterCrop(object):
         left = cy - self.size[1] // 2 + diff_y
 
         # Use torchvision's crop function for cropping
-        return torchvision.transforms.functional.crop(im, left, top, self.size[0], self.size[1])
+        return torchvision.transforms.functional.crop(img, top, left, self.size[0], self.size[1])
