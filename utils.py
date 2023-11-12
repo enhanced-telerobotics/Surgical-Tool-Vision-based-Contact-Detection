@@ -4,9 +4,12 @@ import torch.optim as optim
 import torchvision
 import math
 import random
+import json
+import os
 import numpy as np
 from torch.utils.data import Dataset, DataLoader
-from typing import Optional, List
+from typing import Optional, List, Tuple
+from datetime import datetime
 
 
 def train(model: nn.Module,
@@ -20,16 +23,15 @@ def train(model: nn.Module,
 
     if use_tqdm:
         from tqdm import tqdm
-        pbar = tqdm(total=epochs*len(dataloader),
-                    desc="Training Progress")
+        pbar = tqdm(total=epochs)
 
     model.to(device)
     for epoch in range(epochs):
+
+        model.train()
         correct = 0
         train_loss = 0.0
-
         for X, y in dataloader:
-            model.train()
             # Move data to the device
             X, y = X.to(device), y.to(device)
 
@@ -45,11 +47,6 @@ def train(model: nn.Module,
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-
-            if use_tqdm:
-                pbar.set_description(f"Epoch {epoch}")
-                pbar.set_postfix({'loss': loss.item()})
-                pbar.update()
 
         # Calculate average loss and accuracy over the entire dataset
         train_loss /= len(dataloader)
@@ -78,6 +75,15 @@ def train(model: nn.Module,
             model.metrics['val_loss'].append(val_loss)
             model.metrics['val_acc'].append(val_acc)
 
+        if use_tqdm:
+            pbar.set_description(f"Epoch {epoch}")
+            if val_dataloader:
+                pbar.set_postfix(
+                    {'train_loss': train_loss, 'val_loss': val_loss})
+            else:
+                pbar.set_postfix({'train_loss': train_loss})
+            pbar.update()
+
         model.states.append(model.state_dict())
 
     # add smooth windows for all metrics
@@ -90,19 +96,71 @@ def train(model: nn.Module,
 
 def predict(model: nn.Module,
             dataloader: DataLoader,
-            device: torch.device) -> List[torch.Tensor]:
+            device: torch.device) -> Tuple[np.ndarray, np.ndarray]:
+
     model.to(device)
     model.eval()
 
     predictions = []
+    ground_truth = []
     with torch.no_grad():
-        for X, _ in dataloader:
+        for X, y in dataloader:
             X = X.to(device)
-            output = model(X)
-            pred = output.argmax(dim=1)
-            predictions.extend(pred.cpu().detach().numpy())
+            pred_logits = model(X)
 
-    return np.array(predictions)
+            # Get probabilities
+            pred_probs = torch.nn.functional.softmax(
+                pred_logits, dim=1).squeeze()
+
+            # Append to results
+            predictions.extend(pred_probs[:, 1].detach().tolist())
+            ground_truth.extend(y.detach().tolist())
+
+    return np.array(predictions), np.array(ground_truth)
+
+
+def save_metrics(model: nn.Module,
+                 message_main: str,
+                 message_sub: str = datetime.now().strftime("%H%M%S"),
+                 save_path: str = 'results/') -> str:
+
+    json_name = os.path.join(
+        save_path, f'metrics_{message_main}_{message_sub}.json')
+
+    with open(json_name, 'w') as f:
+        json.dump(model.metrics, f)
+
+    return json_name
+
+
+def save_state_dict(model: nn.Module,
+                    message_main: str,
+                    message_sub: str = datetime.now().strftime("%H%M%S"),
+                    save_path: str = 'models/') -> str:
+
+    model_name = os.path.join(
+        save_path, f'model_{message_main}_{message_sub}.pth')
+
+    best_epoch = np.argmax(model.metrics['val_acc'])
+    best_model = model.states[best_epoch]
+
+    torch.save(best_model, model_name)
+
+    return model_name
+
+
+def load_state_dict(model: nn.Module,
+                    message_main: str,
+                    message_sub: str,
+                    load_path: str = 'models/') -> str:
+
+    model_name = os.path.join(
+        load_path, f'model_{message_main}_{message_sub}.pth')
+
+    best_model = torch.load(model_name)
+    model.load_state_dict(best_model)
+
+    return model_name
 
 
 def _moving_average(data: np.ndarray,
@@ -145,7 +203,7 @@ class CenterCrop(object):
         self.cx = cx
         self.cy = cy
 
-    def __call__(self, im):
+    def __call__(self, img):
         """
         Crop the input image.
 
@@ -155,26 +213,25 @@ class CenterCrop(object):
         Returns:
             PIL.Image: Cropped image.
         """
-        height, weight = im.shape[1:3]
+        height, weight = img.shape[1:3]
 
         # Calculate the crop center coordinates
         if self.cx is None:
-            cx = math.ceil(weight / 2)
-            diff_x = 0
+            cx = math.ceil(height / 2)
         else:
             cx = self.cx
-            diff_x = int(math.ceil(self.len * random.uniform(-1, 1)))
 
         if self.cy is None:
-            cy = math.ceil(height / 2)
-            diff_y = int(math.ceil(self.len * random.uniform(-1, 1)))
+            cy = math.ceil(weight / 2)
         else:
             cy = self.cy
-            diff_y = 0
+
+        diff_x = int(math.ceil(self.len * random.uniform(-1, 1)))
+        diff_y = int(math.ceil(self.len * random.uniform(-1, 1)))
 
         # Calculate the coordinates of the top-left corner of the crop
         top = cx - self.size[0] // 2 + diff_x
         left = cy - self.size[1] // 2 + diff_y
 
         # Use torchvision's crop function for cropping
-        return torchvision.transforms.functional.crop(im, left, top, self.size[0], self.size[1])
+        return torchvision.transforms.functional.crop(img, top, left, self.size[0], self.size[1])

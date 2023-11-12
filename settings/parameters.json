@@ -1,14 +1,14 @@
 {
-    "random_seed": 42,
-    "epochs": 200,
+    "random_seed": 3407,
+    "epochs": 150,
+    "batch_size": 32,
+    
     "CustomCNN": {
-        "learning_rate": 8.404121025240116e-05,
-        "weight_decay": 4.760735689963285e-05,
-        "batch_size": 128
+        "learning_rate": 0.000730033884984545,
+        "weight_decay": 8.284626190217107e-05
     },
     "EfficientNet": {
-        "learning_rate": 0.0004137045040969491,
-        "weight_decay": 2.739409653525517e-05,
-        "batch_size": 32
+        "learning_rate": 8.992908833904395e-05,
+        "weight_decay": 8.284626190217107e-05
     }
 }
