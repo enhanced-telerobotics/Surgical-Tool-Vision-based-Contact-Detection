@@ -4,12 +4,13 @@ __pycache__
 *.json
 !parameters.json
 !paths.json
+*.pt
 *.pth
 *.txt
 *.pdf
 *.svg
 *.eps
-*.pickle
+*.pkl
 
 run*
 test.*
