@@ -1,14 +1,8 @@
 {
     "silicone": {
-        "labels": "/home/mhl88/MTurk/TouchSensing/labels/MTurk_Labels_with_keypoints.csv",
-        "keypoints": "/home/sxy841/ERIE/silicone/Track-Shuyuan-2023-08-13/videos",
-        "image_set": "/home/zxc703/silicone_data",
+        "labels": "./labels/MTurk_Labels_with_keypoints.csv",
+        "keypoints": "/Path/to/keypoints_folder",
+        "image_set": "/Path/to/data_folder",
         "keypoints_model": "DLC_resnet50_TrackAug13shuffle1_50000"
-    },
-    "realistic": {
-        "labels": "/home/mhl88/MTurk/TouchSensing/labels/all_batches_plus_keypoints.csv",
-        "keypoints": "/home/sxy841/ERIE/realistic/Track-Shuyuan-2023-08-13/videos",
-        "image_set": "/home/zxc703/realistic_data",
-        "keypoints_model": "DLC_resnet50_TrackAug13shuffle1_70000"
     }
 }
