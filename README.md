@@ -1,5 +1,7 @@
 # Telesurgical Tool Vision-based Contact Detection
 
+![Pipeline](flowchart.png)
+
 This project is part of the research work titled **“Vision-Based Force Estimation for Minimally Invasive Telesurgery Through Contact Detection and Local Stiffness Models”**. The project utilizes an open-source silicone dataset of simulated palpation using surgical robot end effectors. Two neural network binary classifiers were trained based on contact states obtained through sensor thresholds or crowdsourcing (MTurk).
 
 ## Getting Started
